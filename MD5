@@ -1,0 +1,16 @@
+fa7657ad1f88255ddd8ec9dfc41a2307 *DESCRIPTION
+dc94f57acea846f5d2433263bff1697a *LICENSE
+c75d27281a482e7404bd9136a1fa0c54 *NAMESPACE
+e297d0783c94e20c15825380d578dd8c *NEWS.md
+2466263e0494af7cfef1926299485a19 *R/as-fn.R
+2d9e5b73df24d45652364276749f4d34 *R/fn.R
+0f95d2e1d6ec424ddfbffff4a4c3219d *R/nofrills.R
+6c50fa0bbdf12c16d971166866932df1 *README.md
+e15b5eeafdcb926bdd5ad960371add8b *man/as_fn.Rd
+9c549a8d5f75c4ca2c5c0587b24ac256 *man/fn.Rd
+9796488b48e50a69ec0f4f1f205b0cbe *man/nofrills-package.Rd
+a232c4312d949d4caf89e58b0b27432c *tests/testthat.R
+c4f099577651828d18654a602167397b *tests/testthat/test-environments.R
+21d2296e0f2a850ef675a0cb365effa8 *tests/testthat/test-errors.R
+59ac30be7f858b6bb77420818dbfba36 *tests/testthat/test-functions.R
+6ec0a8003424ddb48fcc54edc3bdf70e *tests/testthat/test-quasiquotation.R
