@@ -1,0 +1,18 @@
+# nofrills
+
+## 0.2.0
+
+  * `fn()` now comprehends literal unquoting operators via the use of `QUQ()`,
+    `QUQS()` and `QUQE()`. This allows you to make functions with `fn()` that
+    contain unquoting operators, which is handy when programming with dplyr or
+    other tidyverse packages.
+
+  * `make_fn_aware()` is a new functional operator that enhances a function by
+    enabling it to interpret abbreviated functional arguments (cf. `as_fn()`).
+
+  * In order to keep the package namespace slim, `..()` has been softly
+    deprecated.
+
+## 0.1.0
+
+  * Initial release

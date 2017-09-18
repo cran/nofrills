@@ -6,8 +6,6 @@
 \title{Low-cost anonymous functions}
 \usage{
 fn(..., ..env = parent.frame())
-
-..(..., ..env = parent.frame())
 }
 \arguments{
 \item{...}{Function declaration, which supports
@@ -21,20 +19,19 @@ A function whose enclosing environment is \code{..env}.
 }
 \description{
 \code{fn()} enables you to create (anonymous) functions, of arbitrary call
-signature. It is a drop-in replacement for the usual
-\code{function(<arguments>) <body>} invocation, but costs less:
+signature. Use it in place of the usual \code{function()} invocation whenever you
+want to:
 \itemize{
-\item It is \strong{shorter}:
+\item type less:
 \preformatted{
     fn(x, y = 1 ~ x + y)
     function(x, y = 1) x + y}
-are equivalent.
-\item It is \strong{safer}: by enabling (Tidyverse)
+are equivalent
+\item guard against changes in lexical scope: by enabling tidyverse
 \link[rlang:quasiquotation]{quasiquotation}, \code{fn()} allows you to
-\dQuote{burn in} values, which can guard your function from unexpected
-scope changes (see \emph{Examples}).
+\dQuote{burn in} values at the point of function creation (see
+\emph{Leveraging quasiquotation})
 }
-To reduce visual noise, \code{..()} is provided as an alias of \code{fn()}.
 }
 \section{Function declarations}{
  A \emph{function declaration} is an expression
@@ -46,16 +43,18 @@ or\preformatted{    arg1, arg2, ..., argN, ~ body
 }
 
 (Note in the second form that the body is a one-sided formula. This
-distinction is relevant for argument \link[rlang:UQS]{splicing}; see below.)
-
-To the left of \code{~}, you write a conventional function-argument declaration,
-just as in \code{function(<arguments>)}: each of \code{arg1}, \code{arg2}, \dots, \code{argN}
-is either a bare argument (e.g., \code{x} or \code{...}) or an argument with default
-value (e.g., \code{x = 1}). To the right of \code{~}, you write the function body,
+distinction is relevant for argument \link[rlang:UQS]{splicing}, see below.)
+\itemize{
+\item To the left of \code{~}, you write a conventional function-argument
+declaration, just as in \code{function(<arguments>)}: each of \code{arg1}, \code{arg2},
+\dots, \code{argN} is either a bare argument (e.g., \code{x} or \code{...}) or an
+argument with default value (e.g., \code{x = 1}).
+\item To the right of \code{~}, you write the function body,
 i.e., an expression of the arguments.
+}
 
 \subsection{Quasiquotation}{
-All parts of a function declaration support (Tidyverse)
+All parts of a function declaration support tidyverse
 \link[rlang:quasiquotation]{quasiquotation}:
 \itemize{
 \item To unquote values (of arguments or parts of the body), use \code{!!}
@@ -74,7 +73,61 @@ or \code{UQ()}:
     fn(!!! alist(x, y = 0), ~ x + y)}
 (Note that the body, in this case, must be given as a one-sided
 formula.)
+\item To write literal unquoting operators, use \code{QUQ()}, \code{QUQS()},
+\code{QUQE()}:
+\preformatted{
+    library(dplyr)
+
+    my_summarise <- fn(df, ... ~ {
+      group_by <- quos(...)
+      df \%>\%
+        group_by(QUQS(group_by)) \%>\%
+        summarise(a = mean(a))
+    })}
+(Source:
+\emph{\href{http://dplyr.tidyverse.org/articles/programming.html}{Programming with dplyr}})
 }
+}
+}
+
+\section{Leveraging quasiquotation}{
+ Functions in R are generally
+\href{https://en.wikipedia.org/wiki/Pure_function}{impure}, i.e., the return
+value of a function will \emph{not} in general be determined by the value of its
+inputs alone. This is because a function may depend on mutable objects in
+its
+\href{http://adv-r.hadley.nz/functions.html#lexical-scoping}{lexical scope}.
+Normally this isn’t an issue. But if you are working interactively and
+sourcing files into the global environment, say, it can be tricky to ensure
+that you haven’t unwittingly mutated an object that an earlier function
+depends upon.
+
+\strong{Example} — Consider the following function:\preformatted{    a <- 1
+    foo <- function(x) x + a
+}
+
+What is the value of \code{foo(1)}? It is not necessarily \code{2}, because the value
+of \code{a} may have changed between the \emph{creation} of \code{foo()} and the \emph{calling}
+of \code{foo(1)}:\preformatted{    foo(1)  #> [1] 2
+    a <- 0
+    foo(1)  #> [1] 1
+}
+
+In other words, \code{foo()} is impure because the value of \code{foo(x)} depends not
+only on the value of \code{x} but also on the \emph{externally mutable} value of \code{a}.
+
+\code{fn()} enables you to write pure functions by using
+\href{http://rlang.tidyverse.org/reference/quasiquotation.html}{quasiquotation}
+to eliminate such indeterminacy.
+
+\strong{Example} — With \code{fn()}, you can unquote \code{a} to \dQuote{burn in} its
+value at the point of creation:\preformatted{    a <- 1
+    foo <- fn(x ~ x + !! a)
+}
+
+Now \code{foo()} is a pure function, unaffected by changes in its lexical scope:\preformatted{    foo(1)  #> [1] 2
+    a <- 0
+    foo(1)  #> [1] 2
 }
 }
 
@@ -101,20 +154,21 @@ g <- function(y, x, ...) x - y
 frankenstein <- fn(!!! formals(f), ~ !! body(g))
 stopifnot(identical(frankenstein, function(x, y) x - y))
 
-## unquoting protects against changes in a function’s scope
-x <- "x"
-f <- function() x
-f_solid <- fn(~ !! x)
-# both return the same value of x
-f()
-f_solid()
-# but if the binding `x` is (unwittingly) changed, f() changes ...
-x <- sin
-f()
-# ... while f_solid() remains unaffected
-f_solid()
+## mixing unquoting and literal unquoting is possible
+if (suppressWarnings(require(dplyr))) {
+  summariser <- quote(mean)
+
+  my_summarise <- fn(df, ... ~ {
+    group_by <- quos(...)
+    df \%>\%
+      group_by(QUQS(group_by)) \%>\%
+      summarise(a = UQ(summariser)(a))
+  })
+
+  my_summarise
+}
 
 }
 \seealso{
-\code{\link[=as_fn]{as_fn()}}
+\code{\link[=as_fn]{as_fn()}}, \code{\link[=make_fn_aware]{make_fn_aware()}}
 }

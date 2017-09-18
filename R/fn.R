@@ -1,20 +1,19 @@
 #' Low-cost anonymous functions
 #'
 #' `fn()` enables you to create (anonymous) functions, of arbitrary call
-#' signature. It is a drop-in replacement for the usual
-#' `function(<arguments>) <body>` invocation, but costs less:
+#' signature. Use it in place of the usual `function()` invocation whenever you
+#' want to:
 #' \itemize{
-#'   \item It is **shorter**:
+#'   \item type less:
 #'     \preformatted{
 #'     fn(x, y = 1 ~ x + y)
 #'     function(x, y = 1) x + y}
-#'     are equivalent.
-#'   \item It is **safer**: by enabling (Tidyverse)
+#'     are equivalent
+#'   \item guard against changes in lexical scope: by enabling tidyverse
 #'     [quasiquotation][rlang::quasiquotation], `fn()` allows you to
-#'     \dQuote{burn in} values, which can guard your function from unexpected
-#'     scope changes (see _Examples_).
+#'     \dQuote{burn in} values at the point of function creation (see
+#'     _Leveraging quasiquotation_)
 #' }
-#' To reduce visual noise, `..()` is provided as an alias of `fn()`.
 #'
 #' @param ... Function declaration, which supports
 #'   [quasiquotation][rlang::quasiquotation].
@@ -34,16 +33,18 @@
 #'       arg1, arg2, ..., argN, ~ body
 #'   ```
 #'   (Note in the second form that the body is a one-sided formula. This
-#'   distinction is relevant for argument [splicing][rlang::UQS()]; see below.)
+#'   distinction is relevant for argument [splicing][rlang::UQS()], see below.)
 #'
-#'   To the left of `~`, you write a conventional function-argument declaration,
-#'   just as in `function(<arguments>)`: each of `arg1`, `arg2`, \dots, `argN`
-#'   is either a bare argument (e.g., `x` or `...`) or an argument with default
-#'   value (e.g., `x = 1`). To the right of `~`, you write the function body,
-#'   i.e., an expression of the arguments.
+#'   - To the left of `~`, you write a conventional function-argument
+#'     declaration, just as in `function(<arguments>)`: each of `arg1`, `arg2`,
+#'     \dots, `argN` is either a bare argument (e.g., `x` or `...`) or an
+#'     argument with default value (e.g., `x = 1`).
+#'
+#'   - To the right of `~`, you write the function body,
+#'     i.e., an expression of the arguments.
 #'
 #'   \subsection{Quasiquotation}{
-#'     All parts of a function declaration support (Tidyverse)
+#'     All parts of a function declaration support tidyverse
 #'     [quasiquotation][rlang::quasiquotation]:
 #'     \itemize{
 #'       \item To unquote values (of arguments or parts of the body), use `!!`
@@ -62,10 +63,67 @@
 #'     fn(!!! alist(x, y = 0), ~ x + y)}
 #'         (Note that the body, in this case, must be given as a one-sided
 #'         formula.)
+#'       \item To write literal unquoting operators, use `QUQ()`, `QUQS()`,
+#'         `QUQE()`:
+#'         \preformatted{
+#'     library(dplyr)
+#'
+#'     my_summarise <- fn(df, ... ~ {
+#'       group_by <- quos(...)
+#'       df \%>\%
+#'         group_by(QUQS(group_by)) \%>\%
+#'         summarise(a = mean(a))
+#'     })}
+#'         (Source:
+#'         _[Programming with dplyr](http://dplyr.tidyverse.org/articles/programming.html)_)
 #'     }
 #'   }
 #'
-#' @seealso [as_fn()]
+#' @section Leveraging quasiquotation: Functions in R are generally
+#'   [impure](https://en.wikipedia.org/wiki/Pure_function), i.e., the return
+#'   value of a function will _not_ in general be determined by the value of its
+#'   inputs alone. This is because a function may depend on mutable objects in
+#'   its
+#'   [lexical scope](http://adv-r.hadley.nz/functions.html#lexical-scoping).
+#'   Normally this isn’t an issue. But if you are working interactively and
+#'   sourcing files into the global environment, say, it can be tricky to ensure
+#'   that you haven’t unwittingly mutated an object that an earlier function
+#'   depends upon.
+#'
+#'   **Example** — Consider the following function:
+#'   ```
+#'       a <- 1
+#'       foo <- function(x) x + a
+#'   ```
+#'   What is the value of `foo(1)`? It is not necessarily `2`, because the value
+#'   of `a` may have changed between the _creation_ of `foo()` and the _calling_
+#'   of `foo(1)`:
+#'   ```
+#'       foo(1)  #> [1] 2
+#'       a <- 0
+#'       foo(1)  #> [1] 1
+#'   ```
+#'   In other words, `foo()` is impure because the value of `foo(x)` depends not
+#'   only on the value of `x` but also on the _externally mutable_ value of `a`.
+#'
+#'   `fn()` enables you to write pure functions by using
+#'   [quasiquotation](http://rlang.tidyverse.org/reference/quasiquotation.html)
+#'   to eliminate such indeterminacy.
+#'
+#'   **Example** — With `fn()`, you can unquote `a` to \dQuote{burn in} its
+#'   value at the point of creation:
+#'   ```
+#'       a <- 1
+#'       foo <- fn(x ~ x + !! a)
+#'   ```
+#'   Now `foo()` is a pure function, unaffected by changes in its lexical scope:
+#'   ```
+#'       foo(1)  #> [1] 2
+#'       a <- 0
+#'       foo(1)  #> [1] 2
+#'   ```
+#'
+#' @seealso [as_fn()], [make_fn_aware()]
 #'
 #' @examples
 #' fn(x ~ x + 1)
@@ -90,18 +148,19 @@
 #' frankenstein <- fn(!!! formals(f), ~ !! body(g))
 #' stopifnot(identical(frankenstein, function(x, y) x - y))
 #'
-#' ## unquoting protects against changes in a function’s scope
-#' x <- "x"
-#' f <- function() x
-#' f_solid <- fn(~ !! x)
-#' # both return the same value of x
-#' f()
-#' f_solid()
-#' # but if the binding `x` is (unwittingly) changed, f() changes ...
-#' x <- sin
-#' f()
-#' # ... while f_solid() remains unaffected
-#' f_solid()
+#' ## mixing unquoting and literal unquoting is possible
+#' if (suppressWarnings(require(dplyr))) {
+#'   summariser <- quote(mean)
+#'
+#'   my_summarise <- fn(df, ... ~ {
+#'     group_by <- quos(...)
+#'     df %>%
+#'       group_by(QUQS(group_by)) %>%
+#'       summarise(a = UQ(summariser)(a))
+#'   })
+#'
+#'   my_summarise
+#' }
 #'
 #' @export
 fn <- function(..., ..env = parent.frame()) {
@@ -112,7 +171,11 @@ fn <- function(..., ..env = parent.frame()) {
 }
 #' @rdname fn
 #' @export
-.. <- fn
+#' @usage NULL
+.. <- function(..., ..env = parent.frame()) {
+  warn("`..()` is deprecated. Please use `fn()` instead.")
+  fn(..., ..env = ..env)
+}
 
 get_fn_declaration <- function(...) {
   xs <- get_exprs(...)
@@ -122,7 +185,7 @@ get_fn_declaration <- function(...) {
 }
 
 get_exprs <- function(...) {
-  xs <- validate(exprs(...))
+  xs <- validate(exprs_(...))
   n <- length(xs)
   list(front = xs[-n], back = xs[n])
 }

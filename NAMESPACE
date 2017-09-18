@@ -3,4 +3,5 @@
 export(..)
 export(as_fn)
 export(fn)
+export(make_fn_aware)
 import(rlang)

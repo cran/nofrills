@@ -1,35 +1,41 @@
 
 <!-- README.md is generated from README.Rmd. Please edit that file -->
-nofrills
-========
+nofrills <img src="inst/logo.png" align="right" />
+==================================================
 
 *Low-Cost Anonymous Functions*
 
-[![Travis-CI Build Status](https://travis-ci.org/egnha/nofrills.svg?branch=master)](https://travis-ci.org/egnha/nofrills) [![codecov](https://codecov.io/gh/egnha/nofrills/branch/master/graph/badge.svg)](https://codecov.io/gh/egnha/nofrills)
+[![Travis-CI Build Status](https://travis-ci.org/egnha/nofrills.svg?branch=master)](https://travis-ci.org/egnha/nofrills) [![codecov](https://codecov.io/gh/egnha/nofrills/branch/master/graph/badge.svg)](https://codecov.io/gh/egnha/nofrills) [![CRAN\_Status\_Badge](http://www.r-pkg.org/badges/version/nofrills)](https://cran.r-project.org/package=nofrills) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 Overview
 --------
 
-*nofrills* is a tiny R package that provides a function, `fn()`, that enables you to create (anonymous) functions, of *arbitrary* call signature, economically. It is a drop-in replacement for the usual `function(<arguments>) <body>` invocation, but costs less:
+*nofrills* is a lightweight R package that provides `fn()`, a more powerful variation of `function()` that:
 
--   It is **shorter**:
+-   **costs less** — enables tidyverse [quasiquotation](http://rlang.tidyverse.org/reference/quasiquotation.html) so you don’t pay the price of [functional impurity](#leveraging-quasiquotation)
+
+-   has the **same great taste** — supports a superset of `function()`’s syntax and capabilities
+
+-   is **less filling** —
 
     ``` r
     fn(x, y = 1 ~ x + y)
-
-    ..(x, y = 1 ~ x + y)
     ```
 
-    are both equivalent to
+    is equivalent to
 
     ``` r
     function(x, y = 1) x + y
     ```
 
--   It is **safer**: by enabling [quasiquotation](http://rlang.tidyverse.org/reference/quasiquotation.html), `fn()` allows you to “burn in” values, which guards your function from being affected by unexpected scope changes (see example, below).
-
 Installation
 ------------
+
+``` r
+install.packages("nofrills")
+```
+
+Alternatively, install the development version from GitHub:
 
 ``` r
 # install.packages("devtools")
@@ -104,54 +110,83 @@ fn(!!! args, ~ x + y)  # note the one-sided formula
 #> x + y
 ```
 
-### Protect functions against scope changes
-
-Both `f()` and `f_solid()` return the same value of x
+#### Literal unquoting via `QUQ()`, `QUQS()`, `QUQE()`
 
 ``` r
-x <- "x"
+library(dplyr, warn.conflicts = FALSE)
 
-f <- function() x
-f_solid <- fn(~ !! x)
+my_summarise <- fn(df, ... ~ {
+  group_by <- quos(...)
+  df %>%
+    group_by(QUQS(group_by)) %>%
+    summarise(a = mean(a))
+})
 
-f()
-#> [1] "x"
-
-f_solid()
-#> [1] "x"
+my_summarise
+#> function (df, ...) 
+#> {
+#>     group_by <- quos(...)
+#>     df %>% group_by(UQS(group_by)) %>% summarise(a = mean(a))
+#> }
 ```
 
-But if the binding `x` is (unwittingly) changed, `f()` changes, while `f_solid()` remains unaffected.
+(Source: [*Programming with dplyr*](http://dplyr.tidyverse.org/articles/programming.html))
 
-``` r
-x <- sin
+Leveraging quasiquotation
+-------------------------
 
-f()
-#> function (x)  .Primitive("sin")
+Functions in R are generally [impure](https://en.wikipedia.org/wiki/Pure_function), i.e., the return value of a function will *not* in general be determined by the value of its inputs alone. This is because a function may depend on mutable objects in its [lexical scope](http://adv-r.hadley.nz/functions.html#lexical-scoping). Normally this isn’t an issue. But if you are working interactively and sourcing files into the global environment, say, it can be tricky to ensure that you haven’t unwittingly mutated an object that an earlier function depends upon.
 
-f_solid()
-#> [1] "x"
-```
+-   Consider the following function:
 
-### 😃 functions
+    ``` r
+    a <- 1
+    foo <- function(x) x + a
+    ```
 
-Pop quiz: Both of these smileys produce functions.
+    What is the value of `foo(1)`? It is not necessarily `2` because the value of `a` may have changed between the *creation* of `foo()` and the *calling* of `foo(1)`:
 
-``` r
-..(~8^D)
-..(8~D)
-```
+    ``` r
+    foo(1)
+    #> [1] 2
 
-But which one is actually callable?
+    a <- 0
 
-Alternatives
-------------
+    foo(1)
+    #> [1] 1
+    ```
 
-The following packages provide alternative anonymous-function constructors. Unlike `fn()`, they automatically configure the resulting function’s call signature, so they can afford to be more concise.
+    In other words, `foo()` is impure because the value of `foo(x)` depends not only on the value of `x` but also on the *externally mutable* value of `a`.
 
--   [lambda](https://github.com/jimhester/lambda) provides `f()`. It uses a `bquote()`-like notation for function declaration, which, by forgoing explicit call signature specification, is very compact. However, quasiquotation is not supported, as it wasn't available when lambda was developed.
+`fn()` enables you to write pure functions by using [quasiquotation](http://rlang.tidyverse.org/reference/quasiquotation.html) to eliminate such indeterminacy.
 
--   [rlang](https://github.com/tidyverse/rlang) provides [`as_function()`](http://rlang.tidyverse.org/reference/as_function.html), which allows you to create anonymous functions of an arbitrary number of arguments, named `..1` (`.x`), `..2` (`.y`), `..3`, etc. The call signature is fixed.
+-   With `fn()`, you can unquote `a` to “burn in” its value at the point of creation:
+
+    ``` r
+    a <- 1
+    foo <- fn(x ~ x + !! a)
+    ```
+
+    Now `foo()` is a pure function, unaffected by changes in its lexical scope:
+
+    ``` r
+    foo(1)
+    #> [1] 2
+
+    a <- 0
+
+    foo(1)
+    #> [1] 2
+    ```
+
+Alternatives to *nofrills*
+--------------------------
+
+Here are some alternative anonymous-function constructors (which don’t support quasiquotation), ordered by increasing concision and specialization:
+
+-   [`pryr::f()`](https://github.com/hadley/pryr)
+-   [`lambda::f()`](https://github.com/jimhester/lambda)
+-   [`rlang::as_function()`](http://rlang.tidyverse.org/reference/as_function.html)
 
 Acknowledgement
 ---------------
