@@ -12,7 +12,7 @@
 #'   \item guard against changes in lexical scope: by enabling tidyverse
 #'     [quasiquotation][rlang::quasiquotation], `fn()` allows you to
 #'     \dQuote{burn in} values at the point of function creation (see
-#'     _Leveraging quasiquotation_)
+#'     _Pure functions via quasiquotation_)
 #' }
 #'
 #' @param ... Function declaration, which supports
@@ -79,16 +79,19 @@
 #'     }
 #'   }
 #'
-#' @section Leveraging quasiquotation: Functions in R are generally
+#' @section Pure functions via quasiquotation: Functions in R are generally
 #'   [impure](https://en.wikipedia.org/wiki/Pure_function), i.e., the return
 #'   value of a function will _not_ in general be determined by the value of its
 #'   inputs alone. This is because a function may depend on mutable objects in
 #'   its
 #'   [lexical scope](http://adv-r.hadley.nz/functions.html#lexical-scoping).
 #'   Normally this isn’t an issue. But if you are working interactively and
-#'   sourcing files into the global environment, say, it can be tricky to ensure
-#'   that you haven’t unwittingly mutated an object that an earlier function
-#'   depends upon.
+#'   sourcing files into the global environment, say, or using a notebook
+#'   interface
+#'   (like [Jupyter](https://jupyter.org) or
+#'   [R Notebook](http://rmarkdown.rstudio.com/r_notebooks.html)),
+#'   it can be tricky to ensure that you haven’t unwittingly mutated an object
+#'   that an earlier function depends upon.
 #'
 #'   **Example** — Consider the following function:
 #'   ```
@@ -106,7 +109,7 @@
 #'   In other words, `foo()` is impure because the value of `foo(x)` depends not
 #'   only on the value of `x` but also on the _externally mutable_ value of `a`.
 #'
-#'   `fn()` enables you to write pure functions by using
+#'   `fn()` enables you to write _pure_ functions by using
 #'   [quasiquotation](http://rlang.tidyverse.org/reference/quasiquotation.html)
 #'   to eliminate such indeterminacy.
 #'
@@ -168,13 +171,6 @@ fn <- function(..., ..env = parent.frame()) {
     abort("'..env' must be an environment")
   d <- get_fn_declaration(...)
   new_function(d$args, d$body, ..env)
-}
-#' @rdname fn
-#' @export
-#' @usage NULL
-.. <- function(..., ..env = parent.frame()) {
-  warn("`..()` is deprecated. Please use `fn()` instead.")
-  fn(..., ..env = ..env)
 }
 
 get_fn_declaration <- function(...) {

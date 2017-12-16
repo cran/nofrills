@@ -2,7 +2,6 @@
 % Please edit documentation in R/fn.R
 \name{fn}
 \alias{fn}
-\alias{..}
 \title{Low-cost anonymous functions}
 \usage{
 fn(..., ..env = parent.frame())
@@ -30,7 +29,7 @@ are equivalent
 \item guard against changes in lexical scope: by enabling tidyverse
 \link[rlang:quasiquotation]{quasiquotation}, \code{fn()} allows you to
 \dQuote{burn in} values at the point of function creation (see
-\emph{Leveraging quasiquotation})
+\emph{Pure functions via quasiquotation})
 }
 }
 \section{Function declarations}{
@@ -90,7 +89,7 @@ formula.)
 }
 }
 
-\section{Leveraging quasiquotation}{
+\section{Pure functions via quasiquotation}{
  Functions in R are generally
 \href{https://en.wikipedia.org/wiki/Pure_function}{impure}, i.e., the return
 value of a function will \emph{not} in general be determined by the value of its
@@ -98,9 +97,12 @@ inputs alone. This is because a function may depend on mutable objects in
 its
 \href{http://adv-r.hadley.nz/functions.html#lexical-scoping}{lexical scope}.
 Normally this isn’t an issue. But if you are working interactively and
-sourcing files into the global environment, say, it can be tricky to ensure
-that you haven’t unwittingly mutated an object that an earlier function
-depends upon.
+sourcing files into the global environment, say, or using a notebook
+interface
+(like \href{https://jupyter.org}{Jupyter} or
+\href{http://rmarkdown.rstudio.com/r_notebooks.html}{R Notebook}),
+it can be tricky to ensure that you haven’t unwittingly mutated an object
+that an earlier function depends upon.
 
 \strong{Example} — Consider the following function:\preformatted{    a <- 1
     foo <- function(x) x + a
@@ -116,7 +118,7 @@ of \code{foo(1)}:\preformatted{    foo(1)  #> [1] 2
 In other words, \code{foo()} is impure because the value of \code{foo(x)} depends not
 only on the value of \code{x} but also on the \emph{externally mutable} value of \code{a}.
 
-\code{fn()} enables you to write pure functions by using
+\code{fn()} enables you to write \emph{pure} functions by using
 \href{http://rlang.tidyverse.org/reference/quasiquotation.html}{quasiquotation}
 to eliminate such indeterminacy.
 
