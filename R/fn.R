@@ -75,7 +75,7 @@ make_function <- function(args, body, env) {
   stopifnot(all(have_name(args)), is.environment(env))
   if (is_closure(body)) {
     body <- call("function", formals(body), base::body(body))
-  } else if (!is_expr(body)) {
+  } else if (!is_expression(body)) {
     abort("Body must be an expression or closure.")
   }
   args <- as.pairlist(args)
@@ -158,7 +158,7 @@ make_function <- function(args, body, env) {
 #'         summarise(a = mean(a))
 #'     })}
 #'         (Source:
-#'         _[Programming with dplyr](http://dplyr.tidyverse.org/articles/programming.html)_)
+#'         _[Programming with dplyr](https://dplyr.tidyverse.org/articles/programming.html)_)
 #'     }
 #'   }
 #'
@@ -167,14 +167,11 @@ make_function <- function(args, body, env) {
 #'   value of a function will _not_ in general be determined by the value of its
 #'   inputs alone. This is because a function may depend on mutable objects in
 #'   its
-#'   [lexical scope](http://adv-r.hadley.nz/functions.html#lexical-scoping).
+#'   [lexical scope](https://adv-r.hadley.nz/functions.html#lexical-scoping).
 #'   Normally this isn’t an issue. But if you are working interactively and
 #'   sourcing files into the global environment, say, or using a notebook
-#'   interface
-#'   (like [Jupyter](https://jupyter.org) or
-#'   [R Notebook](http://rmarkdown.rstudio.com/r_notebooks.html)),
-#'   it can be tricky to ensure that you haven’t unwittingly mutated an object
-#'   that an earlier function depends upon.
+#'   interface (like Jupyter or R Notebook), it can be tricky to ensure that you
+#'   haven’t unwittingly mutated an object that an earlier function depends upon.
 #'
 #'   **Example** — Consider the following function:
 #'   ```
@@ -193,7 +190,7 @@ make_function <- function(args, body, env) {
 #'   only on the value of `x` but also on the _externally mutable_ value of `a`.
 #'
 #'   `fn()` enables you to write _pure_ functions by using
-#'   [quasiquotation](http://rlang.tidyverse.org/reference/quasiquotation.html)
+#'   [quasiquotation](https://rlang.r-lib.org/reference/quasiquotation.html)
 #'   to eliminate such indeterminacy.
 #'
 #'   **Example** — With `fn()`, you can unquote `a` to \dQuote{burn in} its

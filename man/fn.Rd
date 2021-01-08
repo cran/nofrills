@@ -18,7 +18,7 @@ A function whose enclosing environment is \code{..env}.
 }
 \description{
 \code{fn()} enables you to create (anonymous) functions, of arbitrary call
-signature. Use it in place of the usual \code{function()} invocation whenever you
+signature. Use it in place of the usual \verb{function()} invocation whenever you
 want to:
 \itemize{
 \item type less:
@@ -46,7 +46,7 @@ distinction is relevant for argument \link[rlang:quasiquotation]{splicing}, see
 below.)
 \itemize{
 \item To the left of \code{~}, you write a conventional function-argument
-declaration, just as in \code{function(<arguments>)}: each of \code{arg1}, \code{arg2},
+declaration, just as in \verb{function(<arguments>)}: each of \code{arg1}, \code{arg2},
 \dots, \code{argN} is either a bare argument (e.g., \code{x} or \code{...}) or an
 argument with default value (e.g., \code{x = 1}).
 \item To the right of \code{~}, you write the function body,
@@ -57,17 +57,17 @@ i.e., an expression of the arguments.
 All parts of a function declaration support tidyverse
 \link[rlang:quasiquotation]{quasiquotation}:
 \itemize{
-\item To unquote values (of arguments or parts of the body), use \code{!!}:
+\item To unquote values (of arguments or parts of the body), use \verb{!!}:
 \preformatted{
     z <- 0
     fn(x, y = !!z ~ x + y)
     fn(x ~ x > !!z)}
-\item To unquote argument names (with default value), use \code{:=}
+\item To unquote argument names (with default value), use \verb{:=}
 (definition operator):
 \preformatted{
     arg <- "y"
     fn(x, !!arg := 0 ~ x + !!as.name(arg))}
-\item To splice in a (formal) list of arguments, use \code{!!!}:
+\item To splice in a (formal) list of arguments, use \verb{!!!}:
 \preformatted{
     fn(!!!alist(x, y = 0), ~ x + y)}
 (Note that the body, in this case, must be given as a one-sided
@@ -83,7 +83,7 @@ formula.)
         summarise(a = mean(a))
     })}
 (Source:
-\emph{\href{http://dplyr.tidyverse.org/articles/programming.html}{Programming with dplyr}})
+\emph{\href{https://dplyr.tidyverse.org/articles/programming.html}{Programming with dplyr}})
 }
 }
 }
@@ -94,14 +94,11 @@ formula.)
 value of a function will \emph{not} in general be determined by the value of its
 inputs alone. This is because a function may depend on mutable objects in
 its
-\href{http://adv-r.hadley.nz/functions.html#lexical-scoping}{lexical scope}.
+\href{https://adv-r.hadley.nz/functions.html#lexical-scoping}{lexical scope}.
 Normally this isn’t an issue. But if you are working interactively and
 sourcing files into the global environment, say, or using a notebook
-interface
-(like \href{https://jupyter.org}{Jupyter} or
-\href{http://rmarkdown.rstudio.com/r_notebooks.html}{R Notebook}),
-it can be tricky to ensure that you haven’t unwittingly mutated an object
-that an earlier function depends upon.
+interface (like Jupyter or R Notebook), it can be tricky to ensure that you
+haven’t unwittingly mutated an object that an earlier function depends upon.
 
 \strong{Example} — Consider the following function:\preformatted{    a <- 1
     foo <- function(x) x + a
@@ -118,7 +115,7 @@ In other words, \code{foo()} is impure because the value of \code{foo(x)} depend
 only on the value of \code{x} but also on the \emph{externally mutable} value of \code{a}.
 
 \code{fn()} enables you to write \emph{pure} functions by using
-\href{http://rlang.tidyverse.org/reference/quasiquotation.html}{quasiquotation}
+\href{https://rlang.r-lib.org/reference/quasiquotation.html}{quasiquotation}
 to eliminate such indeterminacy.
 
 \strong{Example} — With \code{fn()}, you can unquote \code{a} to \dQuote{burn in} its
